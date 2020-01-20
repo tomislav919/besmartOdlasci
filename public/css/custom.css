@@ -1,0 +1,92 @@
+.custom-font {
+    font-size: 25px;
+}
+
+.txt-center{
+    text-align: center;
+}
+
+tr.txt-center th, tr.txt-center td {
+    text-align: center;
+}
+
+tr.vertical-align th, tr.vertical-align td {
+    vertical-align: middle;
+}
+
+#th-color-dark:hover {
+    background-color: #fdb8b8;
+}
+
+#th-color-darker {
+    background-color: #fdb8b8;
+}
+
+#tr-color:hover {
+    background-color: #fbcbcb;
+}
+
+#tr-color {
+    background-color: #ffd9d9;
+}
+
+#th-color-dark {
+    background-color: #fbc5c5;
+}
+
+.element-center {
+    margin: auto;
+    width: 50%;
+    padding: 10px;
+}
+
+.custom-font-height {
+    line-height: 3;
+    padding-top: 0;
+}
+
+.custom-font-height-2 {
+    line-height: 2.2;
+    padding-top: 0;
+}
+
+.custom-font-height-3 {
+    line-height: 2;
+    padding-top: 0;
+}
+
+.padding-top-10 {
+    padding-top: 10px;
+}
+
+.padding-top-5 {
+    padding-top: 5px;
+}
+
+.link {
+    cursor:pointer;
+    color:#3490dc;
+
+}
+
+.link:hover {
+    color: #1d68a7;
+    text-decoration:underline;
+}
+
+.custom-p {
+    color: #a7afaf;
+    font-size: 20px;
+    padding-top: 8px;
+}
+
+.no-border-top {
+    border-top: hidden !important;
+}
+
+.margin-top-table {
+    margin-top: -28px;
+}
+.disable[disabled]:hover{
+    cursor: not-allowed;
+}
