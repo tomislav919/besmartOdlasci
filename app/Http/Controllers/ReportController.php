@@ -214,7 +214,7 @@ class ReportController extends Controller
                 $dateStart = explode('.', $dateF[0]);
                 $dateEnd = explode('.', $dateF[1]);
                 $dateFrom = $dateStart[2] . '-' . $dateStart[1] . '-' . $dateStart[0];
-                $dateTo = $dateEnd[2] . '-' . $dateEnd[1] . '-' . $dateEnd[0];
+                $dateTo = $dateEnd[2] . '-' . $dateEnd[1] . '-' . $dateEnd[0] . ' 23:59:59';
 
                 $data = CheckinCheckout::whereBetween('arrival', [$dateFrom, $dateTo])->where('userId', '=', $userId)->get();
 
@@ -236,7 +236,7 @@ class ReportController extends Controller
 
                     $date = new \DateTime($d->arrival);
                     $data[$i]->date = $date->format('d-m-Y');
-                    $data[$i]->detailsLink = '<a href=""';
+
 
                     //racunanje ukupne pauze za dan, ako danas dan nije zatvoren onda umjesto departure vremena koristim now
                     if(!($d->departure == null)){
@@ -257,6 +257,21 @@ class ReportController extends Controller
                         $data[$i]->thClass = 'th-color-dark';
                     }
 
+                    $i++;
+                }
+
+
+                // Formatiranje datuma, u drugom foreachu je jer mi treba neformatirani datum za sumu
+                $i = 0;
+                foreach($data as $d)
+                {
+                    $data[$i]->arrival = date('d-m-Y H:i:s', strtotime($d->arrival));
+                    $data[$i]->departure = date('d-m-Y H:i:s', strtotime($d->departure));
+
+                    // ako za zadnji datum nema odlaska onda onda izbaci da je datum 1970 pa ga prepravim u kosu crtu da bolje izgleda
+                    if($data[$i]->departure == '01-01-1970 01:00:00'){
+                        $data[$i]->departure = '/';
+                    }
                     $i++;
                 }
 
@@ -282,7 +297,7 @@ class ReportController extends Controller
                 $dateStart = explode('.', $dateF[0]);
                 $dateEnd = explode('.', $dateF[1]);
                 $dateFrom = $dateStart[2] . '-' . $dateStart[1] . '-' . $dateStart[0];
-                $dateTo = $dateEnd[2] . '-' . $dateEnd[1] . '-' . $dateEnd[0];
+                $dateTo = $dateEnd[2] . '-' . $dateEnd[1] . '-' . $dateEnd[0] . ' 23:59:59';
 
                 $data = CheckinCheckout::whereBetween('arrival', [$dateFrom, $dateTo])->where('userId', '=', $userId)->get();
 
@@ -330,8 +345,8 @@ class ReportController extends Controller
                     {
                         //ovdje ide samo u prvom loopu
                         $arr[$i]['date'] = $d->date;
-                        $arr[$i]['arrival'] = $d->arrival;
-                        $arr[$i]['departure'] = $d->departure;
+                        $arr[$i]['arrival'] = date('d-m-Y H:i:s', strtotime($d->arrival));
+                        $arr[$i]['departure'] = date('d-m-Y H:i:s', strtotime($d->departure));
                         $arr[$i]['sum'] = $d->breakSum;
 
                         $lastDate = $date;
@@ -339,7 +354,7 @@ class ReportController extends Controller
                     else if($date == $lastDate)
                     {
                         //ovdje ide ako mu je trenutni datum isti kao prethodni
-                        $arr[$i]['departure'] = $d->departure;
+                        $arr[$i]['departure'] = date('d-m-Y H:i:s', strtotime($d->departure));
                         $arr[$i]['sum'] = $arr[$i]['sum'] + $d->breakSum;
                 }
                     else if($date != $lastDate)
@@ -357,19 +372,36 @@ class ReportController extends Controller
                             $arr[$i]['thClass'] = 'th-color-dark';
                         }
 
+
                         $i++;
                         $arr[$i]['date'] = $d->date;
-                        $arr[$i]['arrival'] = $d->arrival;
-                        $arr[$i]['departure'] = $d->departure;
+                        $arr[$i]['arrival'] = date('d-m-Y H:i:s', strtotime($d->arrival));
+                        $arr[$i]['departure'] = date('d-m-Y H:i:s', strtotime($d->departure));
                         $arr[$i]['sum'] = $d->breakSum;
                         $lastDate = $date;
                     }
 
                     $counter++;
 
+                    // samo u zadnjem loop-u napravi ovaj dio koda
                     if($arrCount == $counter)
                     {
                         $arr[$i]['sum'] = gmdate("H:i:s", $arr[$i]['sum']);
+
+                        $timeLimit = "00:30:00";
+                        $breakLimitTS = strtotime($timeLimit);
+                        $breakTS = strtotime($arr[$i]['sum']);
+
+                        if ($breakLimitTS <= $breakTS)
+                        {
+                            $arr[$i]['trClass'] = 'tr-color';
+                            $arr[$i]['thClass'] = 'th-color-dark';
+                        }
+
+                        // ako za zadnji datum nema odlaska onda onda izbaci da je datum 1970 pa ga prepravim u kosu crtu da bolje izgleda
+                        if($arr[$i]['departure'] == '01-01-1970 01:00:00'){
+                            $arr[$i]['departure'] = '/';
+                        }
                     }
                 }
 
@@ -399,6 +431,159 @@ class ReportController extends Controller
 
                 break;
 
+
+
+            //prikaz "Samo prekoračenja pauza"
+            case 3:
+                if ($userId == 'Odaberite djelatnika'){
+                    echo "<script>alert('Niste odabrali djelatnika, molimo Vas da ga odaberete!');</script>";
+                }
+
+                //format datuma iz daterangepicker(dd.mm.yyyy - dd.mm.yyyy) jer eloquent prima yyyy-mm-dd
+                $dateF = explode(' - ', $dateRange);
+
+                $dateStart = explode('.', $dateF[0]);
+                $dateEnd = explode('.', $dateF[1]);
+                $dateFrom = $dateStart[2] . '-' . $dateStart[1] . '-' . $dateStart[0];
+                $dateTo = $dateEnd[2] . '-' . $dateEnd[1] . '-' . $dateEnd[0] . ' 23:59:59';
+
+                $data = CheckinCheckout::whereBetween('arrival', [$dateFrom, $dateTo])->where('userId', '=', $userId)->get();
+
+
+                $users = User::all()->except('1');
+                $requestUser = User::where('id', '=', $userId)->first();
+
+                if(isset($requestUser)){
+                    $requestUser->dateRange = $dateRange;
+                    $requestUser->id = $userId;
+                }
+
+
+                $i = 0;
+                foreach ($data as $d)
+                {
+                    $data[$i]->loopIt = $i+1;
+
+                    $date = new \DateTime($d->arrival);
+                    $data[$i]->date = $date->format('d-m-Y');
+                    $data[$i]->detailsLink = '<a href=""';
+
+                    //racunanje ukupne pauze za dan, ako danas dan nije zatvoren onda umjesto departure vremena koristim now
+                    if(!($d->departure == null)){
+                        $data[$i]->breakSum =  CheckinCheckout::whereBetween('checkout', [$d->arrival, $d->departure])->where('userId', '=', $userId)->whereNotNull('checkout')->pluck('onBreakTimestamp')->sum();
+                    } else {
+                        $data[$i]->breakSum =  CheckinCheckout::whereBetween('checkout', [$d->arrival, Carbon::now()])->where('userId', '=', $userId)->whereNotNull('checkout')->pluck('onBreakTimestamp')->sum();
+                    }
+
+                    $i++;
+                }
+
+
+                $lastDate = false;
+                $arr = [];
+                $arrCount = count($data);
+                $counter = 0;
+                $i = 1;
+                foreach ($data as $index => $d)
+                {
+                    $date = new \DateTime($d->arrival);
+                    $date = $date->format('d-m-Y');
+
+                    if(!$lastDate)
+                    {
+                        //ovdje ide samo u prvom loopu
+                        $arr[$i]['date'] = $d->date;
+                        $arr[$i]['arrival'] = date('d-m-Y H:i:s', strtotime($d->arrival));
+                        $arr[$i]['departure'] = date('d-m-Y H:i:s', strtotime($d->departure));
+                        $arr[$i]['sum'] = $d->breakSum;
+
+                        $lastDate = $date;
+                    }
+                    else if($date == $lastDate)
+                    {
+                        //ovdje ide ako mu je trenutni datum isti kao prethodni
+                        $arr[$i]['departure'] = date('d-m-Y H:i:s', strtotime($d->departure));
+                        $arr[$i]['sum'] = $arr[$i]['sum'] + $d->breakSum;
+                    }
+                    else if($date != $lastDate)
+                    {
+                        //ovdje ide ako je trenutni datum veci od proslog (tj drugaciji)
+                        $arr[$i]['sum'] = gmdate("H:i:s", $arr[$i]['sum']);
+
+                        $timeLimit = "00:30:00";
+                        $breakLimitTS = strtotime($timeLimit);
+                        $breakTS = strtotime($arr[$i]['sum']);
+
+                        if ($breakLimitTS <= $breakTS)
+                        {
+                            $arr[$i]['trClass'] = 'tr-color';
+                            $arr[$i]['thClass'] = 'th-color-dark';
+                        }
+
+
+                        $i++;
+                        $arr[$i]['date'] = $d->date;
+                        $arr[$i]['arrival'] = date('d-m-Y H:i:s', strtotime($d->arrival));
+                        $arr[$i]['departure'] = date('d-m-Y H:i:s', strtotime($d->departure));
+                        $arr[$i]['sum'] = $d->breakSum;
+                        $lastDate = $date;
+                    }
+
+                    $counter++;
+
+                    // samo u zadnjem loop-u napravi ovaj dio koda
+                    if($arrCount == $counter)
+                    {
+                        $arr[$i]['sum'] = gmdate("H:i:s", $arr[$i]['sum']);
+
+                        $timeLimit = "00:30:00";
+                        $breakLimitTS = strtotime($timeLimit);
+                        $breakTS = strtotime($arr[$i]['sum']);
+
+                        if ($breakLimitTS <= $breakTS)
+                        {
+                            $arr[$i]['trClass'] = 'tr-color';
+                            $arr[$i]['thClass'] = 'th-color-dark';
+                        }
+
+                        // ako za zadnji datum nema odlaska onda onda izbaci da je datum 1970 pa ga prepravim u kosu crtu da bolje izgleda
+                        if($arr[$i]['departure'] == '01-01-1970 01:00:00'){
+                            $arr[$i]['departure'] = '/';
+                        }
+                    }
+                }
+
+
+
+                // Ovo je dio u kojem filtriram pauze
+                $data = [];
+                $i = 0;
+                $loopIt = 1;
+                foreach ($arr as $item)
+                {
+                    $breakLimitTS = strtotime('00:30:00');
+                    $breakTS = strtotime($item['sum']);
+                    if ($breakTS >= $breakLimitTS)
+                    {
+                        $n = new \stdClass();
+                        $n->loopIt = $loopIt;
+                        $n->date = $item['date'];
+                        $n->arrival = $item['arrival'];
+                        $n->departure = $item['departure'];
+                        $n->breakSum = $item['sum'];
+
+                        $data[] = $n;
+                        $loopIt++;
+                    }
+                    $i++;
+                }
+
+                return View('period')
+                    ->with('data', $data)
+                    ->with('users', $users)
+                    ->with('requestUser', $requestUser);
+
+                break;
 
             //defaultni prikaz i ako ovo prikaže znači da dolazi do greške
             default:

@@ -52,6 +52,7 @@
                         <select class="browser-default custom-select" name="typeFilter">
                                 <option selected value="1">Prikaz svih dolazaka/odlazaka</option>
                                 <option value="2">Prikaz po danu</option>
+                                <option value="3">Samo prekoračenja pauza</option>
                         </select>
                     </div>
                     <div class="custom-font padding-top-5 txt-center">
